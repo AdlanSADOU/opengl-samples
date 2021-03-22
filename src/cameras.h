@@ -3,8 +3,9 @@
 #include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 #include <glm/gtc/type_ptr.hpp>
 
+
 struct Camera2D {
-    vec2      _position                 = {0.f, 0.f};
+    Vec2      _position                 = {0.f, 0.f};
     glm::mat4 _matrix                   = glm::mat4(1.0f);
     float     _zoom                     = 1.f;
     GLfloat   _screenWidth              = 820;
@@ -37,14 +38,14 @@ struct Camera2D {
         }
     };
 
-    void move(vec2 vec)
+    void move(Vec2 vec)
     {
         _position   = {0.f, 0.f};
         _position.x = vec.x;
         _position.y = vec.y;
         _changed    = true;
     };
-    void setPosition(vec2 vec)
+    void setPosition(Vec2 vec)
     {
         _position.x = vec.x;
         _position.y = vec.y;

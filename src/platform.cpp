@@ -115,13 +115,13 @@ int main(int argc, char *argv[])
 
     Camera2D camera;
     camera.create(WIDTH, HEIGHT, shaderProgram._programId);
-    camera.setPosition(vec2(0, 0));
+    camera.setPosition(Vec2(0, 0));
 
     Sprite sprite;
     Sprite otherSprite;
 
-    sprite.create(100, 0, 10, 10, shaderProgram._programId);
-    otherSprite.create(0, 0, 30, 50, shaderProgram._programId);
+    sprite.create("../assets/powerup.png", {100, 0, 10, 10}, shaderProgram._programId);
+    otherSprite.create("../assets/powerup.png", {0, 0, 30, 50}, shaderProgram._programId);
 
     sprite.setPosition(600, 600);
 
@@ -296,16 +296,16 @@ int main(int argc, char *argv[])
 
         static float cameraSpeed = 1;
         if (key_Left) {
-            camera.move(vec2(-1.f * (cameraSpeed * deltaTime), 0.f));
+            camera.move(Vec2(-1.f * (cameraSpeed * deltaTime), 0.f));
         }
         if (key_Right) {
-            camera.move(vec2((cameraSpeed * deltaTime), 0.f));
+            camera.move(Vec2((cameraSpeed * deltaTime), 0.f));
         }
         if (key_Up) {
-            camera.move(vec2(0.f, -1.f * (cameraSpeed * deltaTime)));
+            camera.move(Vec2(0.f, -1.f * (cameraSpeed * deltaTime)));
         }
         if (key_Down) {
-            camera.move(vec2(0.f, (cameraSpeed * deltaTime)));
+            camera.move(Vec2(0.f, (cameraSpeed * deltaTime)));
         }
 
         static int speed = 10.f;
