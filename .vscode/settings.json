@@ -58,6 +58,8 @@
         "xutility": "cpp",
         "array": "cpp",
         "*.rh": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "bit": "cpp",
+        "clocale": "cpp"
     }
 }

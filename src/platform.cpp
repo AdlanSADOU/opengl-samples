@@ -44,14 +44,15 @@ static GLfloat z        = -5.0;
 static bool    key_Left = 0, key_Right = 0, key_Up = 0, key_Down = 0;
 static bool    key_W = 0, key_A = 0, key_S = 0, key_D = 0;
 
-void GLAPIENTRY
-MessageCallback(GLenum        source,
-                GLenum        type,
-                GLuint        id,
-                GLenum        severity,
-                GLsizei       length,
-                const GLchar *message,
-                const void *  userParam)
+ShaderProgram shaderProgram;
+
+void GLAPIENTRY MessageCallback(GLenum        source,
+                                GLenum        type,
+                                GLuint        id,
+                                GLenum        severity,
+                                GLsizei       length,
+                                const GLchar *message,
+                                const void *  userParam)
 {
     fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
             (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
@@ -79,9 +80,9 @@ int main(int argc, char *argv[])
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 4);
-    // SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 6);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
     glewExperimental = true;
 
     SDL_Window *  window    = SDL_CreateWindow("awesome", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, flags);
@@ -107,7 +108,6 @@ int main(int argc, char *argv[])
     fragShader.create("src/fragmentShader.frag", GL_FRAGMENT_SHADER);
 
     // TODO:shaderprogram
-    ShaderProgram shaderProgram;
     shaderProgram.attachShader(&vertShader);
     shaderProgram.attachShader(&fragShader);
     shaderProgram.compile();
@@ -117,13 +117,10 @@ int main(int argc, char *argv[])
     camera.create(WIDTH, HEIGHT, shaderProgram._programId);
     camera.setPosition(Vec2(0, 0));
 
-    Sprite sprite;
-    Sprite otherSprite;
-
-    sprite.create("../assets/powerup.png", {100, 0, 10, 10}, shaderProgram._programId);
-    otherSprite.create("../assets/powerup.png", {0, 0, 30, 50}, shaderProgram._programId);
-
-    sprite.setPosition(600, 600);
+    //
+    // SCRATCH
+    //
+    Point mypoints(200, 200, 2);
 
     //
     // Matrices Setup
@@ -135,15 +132,15 @@ int main(int argc, char *argv[])
     shaderProgram.setUniformMatrix4fv((char *)"view", view);
     shaderProgram.setUniformMatrix4fv((char *)"model", model);
 
+    GLint locI = glGetUniformLocation(shaderProgram._programId, "i");
+
     glClearColor(0.2, 0.2, 0.2, 1);
 
+    glEnable(GL_BLEND); // you enable blending function
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     //
     // Main Loop
     //
-    float fps       = 0.f;
-    float frameTime = 0.f;
-    float time      = 0.f;
-    float deltaTime = 0.f;
 
     while (running) {
         static float rotationAngle = 0.01f;
@@ -194,11 +191,6 @@ int main(int argc, char *argv[])
                     key_Down = true;
                 }
 
-                //
-                // Camera movement // Todo: obviously, this is rediculus, but enough for now
-                //
-                {
-                }
             } break;
             case SDL_KEYUP: {
                 {
@@ -240,93 +232,17 @@ int main(int argc, char *argv[])
         // Update
         //
 
-        //
-        // Frames calc & limit
-        //
-        {
-            static const int NUM_SAMPLES = 1000;
-            float            frameTimes[NUM_SAMPLES];
-
-            static int   currentFrame = 0.f;
-            static float prevTicks    = SDL_GetTicks();
-
-            float currentTicks = SDL_GetTicks();
-
-            frameTime                              = currentTicks - prevTicks;
-            frameTimes[currentFrame % NUM_SAMPLES] = frameTime;
-
-            prevTicks = currentTicks;
-
-            int count;
-
-            currentFrame++;
-            if (currentFrame < NUM_SAMPLES) {
-                count = currentFrame;
-            } else {
-                count = NUM_SAMPLES;
-            }
-
-            float frameTimeAverage = 0;
-            for (size_t i = 0; i < count; i++) {
-                frameTimeAverage += frameTimes[i];
-            }
-
-            frameTimeAverage /= count;
-
-            if (frameTimeAverage > 0) {
-                fps = 1000.0f / frameTimeAverage;
-            } else {
-                fps = MAX_FPS;
-            }
-
-            static int frameCount = 0;
-            ++frameCount;
-            if (frameCount > 10) {
-                // printf("%.2f\n", 1 - (frameTime / 100) + 1 - 1 - (frameTime / 100));
-                frameCount = 0;
-            }
-
-            float frameTicks = SDL_GetTicks() - startTicks;
-            if (1000.f / MAX_FPS > frameTicks) {
-                if (running)
-                    SDL_Delay(1000.f / MAX_FPS - frameTicks);
-            }
-            deltaTime = frameTime / 100;
-        }
-
-        static float cameraSpeed = 1;
-        if (key_Left) {
-            camera.move(Vec2(-1.f * (cameraSpeed * deltaTime), 0.f));
-        }
-        if (key_Right) {
-            camera.move(Vec2((cameraSpeed * deltaTime), 0.f));
-        }
-        if (key_Up) {
-            camera.move(Vec2(0.f, -1.f * (cameraSpeed * deltaTime)));
-        }
-        if (key_Down) {
-            camera.move(Vec2(0.f, (cameraSpeed * deltaTime)));
-        }
-
-        static int speed = 10.f;
-        if (key_W)
-            sprite.move(0, -speed * deltaTime);
-        if (key_A)
-            sprite.move( -speed * deltaTime, 0);
-        if (key_S)
-            sprite.move(0, speed * deltaTime);
-        if (key_D)
-            sprite.move( speed * deltaTime, 0);
-
         camera.update();
 
         //
         // Render
         //
+        static float i = 0;
+        glUniform1f(locI, i++);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        otherSprite.draw();
-        sprite.draw();
+        mypoints.Draw();
 
         SDL_GL_SwapWindow(window);
     }

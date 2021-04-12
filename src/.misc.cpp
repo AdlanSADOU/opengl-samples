@@ -5,6 +5,65 @@
 #include <GL/glu.h>
 #include <SDL/SDL.h>
 
+//
+// Frames calc & limit
+//
+void frames()
+{
+    float fps       = 0.f;
+    float frameTime = 0.f;
+    float time      = 0.f;
+    float deltaTime = 0.f;
+
+    static const int NUM_SAMPLES = 1000;
+    float            frameTimes[NUM_SAMPLES];
+
+    static int   currentFrame = 0.f;
+    static float prevTicks    = SDL_GetTicks();
+
+    float currentTicks = SDL_GetTicks();
+
+    frameTime                              = currentTicks - prevTicks;
+    frameTimes[currentFrame % NUM_SAMPLES] = frameTime;
+
+    prevTicks = currentTicks;
+
+    int count;
+
+    currentFrame++;
+    if (currentFrame < NUM_SAMPLES) {
+        count = currentFrame;
+    } else {
+        count = NUM_SAMPLES;
+    }
+
+    float frameTimeAverage = 0;
+    for (size_t i = 0; i < count; i++) {
+        frameTimeAverage += frameTimes[i];
+    }
+
+    frameTimeAverage /= count;
+
+    // if (frameTimeAverage > 0) {
+    //     fps = 1000.0f / frameTimeAverage;
+    // } else {
+    //     fps = MAX_FPS;
+    // }
+
+    // static int frameCount = 0;
+    // ++frameCount;
+    // if (frameCount > 10) {
+    //     frameCount = 0;
+    // }
+
+    // float frameTicks = SDL_GetTicks() - startTicks;
+    // if (1000.f / MAX_FPS > frameTicks) {
+    //     if (running)
+    //         SDL_Delay(1000.f / MAX_FPS - frameTicks);
+    // }
+    // deltaTime = frameTime / 100;
+}
+
 static void renderCube(SDL_Window *window)
 {
     /* Our angle of rotation. */

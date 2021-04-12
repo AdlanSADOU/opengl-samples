@@ -1,8 +1,14 @@
 #version 330 core
 
+in vec4 inColor;
+in vec2 texCoord;
+
 out vec4 FragColor;
+
+uniform sampler2D texSampler;
+uniform sampler2D texSampler1;
 
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    FragColor = mix(texture(texSampler, texCoord), texture(texSampler1, texCoord), 0.2) * inColor;
 }

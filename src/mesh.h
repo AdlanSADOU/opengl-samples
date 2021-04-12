@@ -1,8 +1,12 @@
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 #include <glew.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <shader.h>
 #include <string>
+#include <types.h>
 #include <vector>
 
 struct Vertex {
@@ -19,7 +23,6 @@ struct Texture {
 class Mesh
 {
   public:
-    // mesh data
     std::vector<Vertex>       vertices;
     std::vector<unsigned int> indices;
     std::vector<Texture>      textures;
@@ -89,4 +92,52 @@ class Mesh
 
         glBindVertexArray(0);
     }
+};
+
+class Model
+{
+  public:
+    Model(char *path)
+    {
+        loadModel(path);
+    }
+    void Draw(Shader &shader)
+    {
+        for (unsigned int i = 0; i < meshes.size(); i++)
+            meshes[i].Draw(shader);
+    }
+
+  private:
+    std::vector<Mesh> meshes;
+    std::string       directory;
+
+    void loadModel(std::string path)
+    {
+        Assimp::Importer import;
+        const aiScene *  scene = import.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+            printf("ERROR::ASSIMP:: %s", import.GetErrorString());
+            return;
+        }
+        directory = path.substr(0, path.find_last_of('/'));
+
+        processNode(scene->mRootNode, scene);
+    }
+
+    void processNode(aiNode *node, const aiScene *scene)
+    {
+        // process all the node's meshes (if any)
+        for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+            aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+            meshes.push_back(processMesh(mesh, scene));
+        }
+        // then do the same for each of its children
+        for (unsigned int i = 0; i < node->mNumChildren; i++) {
+            processNode(node->mChildren[i], scene);
+        }
+    }
+    Mesh                 processMesh(aiMesh *mesh, const aiScene *scene); // todo learnopengl
+    std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type,
+                                              std::string typeName);
 };

@@ -26,8 +26,10 @@ struct Shader {
         shaderFile.close();
 
         source = fileStream.str();
-        if (shaderFile.fail())
+        if (shaderFile.fail()) {
             printf("Could not read: %s\n", sourcePath);
+            system("pause");
+        }
 
         const GLchar *shaderSource = source.c_str();
         printf(shaderSource);
@@ -42,6 +44,7 @@ struct Shader {
         if (!success) {
             glGetShaderInfoLog(_ID, 512, NULL, infoLog);
             printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED: %s\n", infoLog);
+            system("pause");
         }
 
         return _ID;
@@ -78,6 +81,7 @@ struct ShaderProgram {
         if (!success) {
             glGetProgramInfoLog(_programId, 512, NULL, infoLog);
             printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED: %s\n", infoLog);
+            system("pause");
             return 0;
         }
         return 1;

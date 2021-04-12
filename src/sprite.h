@@ -8,6 +8,16 @@
 #include "stb_image.h"
 #include "types.h"
 
+extern ShaderProgram shaderProgram;
+
+class Color
+{
+    float r;
+    float g;
+    float b;
+    float a;
+};
+
 struct Texture {
     GLuint _GPU_TextureId;
 
@@ -19,6 +29,7 @@ struct Texture {
     void create(const char *filepath)
     {
         // load image
+        stbi_set_flip_vertically_on_load(true);
         _pixels = stbi_load(filepath, &_width, &_height, &_channelsCount, 0);
 
         if (!_pixels) {
@@ -38,22 +49,26 @@ struct Texture {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+        float borderColor[] = {1.0f, 1.0f, 0.0f, 1.0f};
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
         stbi_image_free(_pixels);
     };
 };
 
 struct Vertex {
     glm::vec3 Position;
-    // glm::vec2 TexCoords;
+    glm::vec4 Color;
+    glm::vec2 TexCoords;
 };
 
 struct Sprite {
-    FRect _rect;
-    float _scaleFactor = 1.f;
-
-    GLuint _VBO = 0;
-    GLuint _VAO_pos = 0;
-    GLuint _VAO_tex = 0;
+    FRect   _rect;
+    float   _scaleFactor = 1.f;
+    Color   color;
+    Texture texture;
+    GLuint  _VBO = 0;
+    GLuint  _VAO = 0;
 
     std::array<GLfloat, 10> _vertsQuad;
     std::array<Vertex, 4>   _vertsQuadV;
@@ -66,18 +81,39 @@ struct Sprite {
     void create(const char *filepath, FRect rect, GLuint shaderProgram)
     {
         _rect = rect;
+        texture.create(filepath);
 
-        _vertsQuadV[0].Position = {_rect.x + rect.w, _rect.y, 0};
-        _vertsQuadV[1].Position = {_rect.x, _rect.y, 0};
-        _vertsQuadV[2].Position = {_rect.x, _rect.y + _rect.h, 0};
-        _vertsQuadV[3].Position = {_rect.x + rect.w, rect.y + _rect.h, 0};
+        /* vertex 1 */ _vertsQuadV[0].Position  = {_rect.x + rect.w, _rect.y, 0};
+        /*          */ _vertsQuadV[0].Color     = {1, 1, 1, 1}; // alpha values have no effect
+        /*          */ _vertsQuadV[0].TexCoords = {1, 1};
 
-        glGenVertexArrays(1, &_VAO_pos);
-        glBindVertexArray(_VAO_pos);
+        /* vertex 2 */ _vertsQuadV[1].Position  = {_rect.x, _rect.y, 0};
+        /*          */ _vertsQuadV[1].Color     = {1, 1, 1, 1};
+        /*          */ _vertsQuadV[1].TexCoords = {1, 0};
+
+        /* vertex 3 */ _vertsQuadV[2].Position  = {_rect.x, _rect.y + _rect.h, 0};
+        /*          */ _vertsQuadV[2].Color     = {1, 1, 1, 1};
+        /*          */ _vertsQuadV[2].TexCoords = {0, 0};
+
+        /* vertex 4 */ _vertsQuadV[3].Position  = {_rect.x + rect.w, rect.y + _rect.h, 0};
+        /*          */ _vertsQuadV[3].Color     = {1, 1, 1, 1};
+        /*          */ _vertsQuadV[3].TexCoords = {0, 1};
+
+        glGenVertexArrays(1, &_VAO);
+        glBindVertexArray(_VAO);
 
         glGenBuffers(1, &_VBO);
         glBindBuffer(GL_ARRAY_BUFFER, _VBO);
-        glBufferData(GL_ARRAY_BUFFER, _vertsQuadV.size() * 4 * sizeof(GLfloat), &_vertsQuadV[0], GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, _vertsQuadV.size() * 12 * sizeof(GLfloat), &_vertsQuadV[0], GL_STATIC_DRAW);
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)0);
+        glEnableVertexAttribArray(0);
+
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(float), (void *)(7 * sizeof(float)));
+        glEnableVertexAttribArray(2);
 
         unsigned int indices[] = {
             0, 1, 3, // first triangle
@@ -87,15 +123,10 @@ struct Sprite {
         unsigned int EBO;
         glGenBuffers(1, &EBO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
         //---------------------------------
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-        glEnableVertexAttribArray(0);
         glBindVertexArray(0);
-
-
-
 
         _modelUniformLocation = glGetUniformLocation(shaderProgram, "model");
     };
@@ -111,12 +142,15 @@ struct Sprite {
             _changed = false;
         }
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture._GPU_TextureId);
+
         glUniformMatrix4fv(_modelUniformLocation, 1, GL_FALSE, glm::value_ptr(_modelMatrix));
-        glBindVertexArray(_VAO_pos); // just rebind this when we want to draw the above quad
+        glBindVertexArray(_VAO); // just rebind this when we want to draw the above quad
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        if ((err = glGetError()) != GL_NO_ERROR) {
-            printf("Error: 0x%x\n", err);
-        }
+        // if ((err = glGetError()) != GL_NO_ERROR) {
+        //     printf("Error: 0x%x\n", err);
+        // }
     };
 
     void move(float x, float y)
@@ -147,5 +181,107 @@ struct Sprite {
         _scaleFactor = scale;
         glm::vec3 scaleVec3(scale, scale, .0f);
         _modelMatrix = glm::scale(_modelMatrix, scaleVec3);
+    }
+
+    void setColor()
+    {
+    }
+};
+
+class LineShape
+{
+  private:
+    GLuint vao;
+    GLuint vbo;
+    GLuint posAttrib;
+    bool   _changed = false;
+
+    Vec2 points[2];
+
+  public:
+    ~LineShape(){};
+
+    LineShape(Vec2 p1, Vec2 p2, float size = 2)
+    {
+
+        points[0] = p1;
+        points[1] = p2;
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
+
+        posAttrib = glGetAttribLocation(shaderProgram._programId, "aPos");
+        glEnableVertexAttribArray(posAttrib);
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+        glLineWidth(size);
+    }
+
+    void Draw()
+    {
+        GLenum err = GL_NO_ERROR;
+        if (_changed) {
+
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(points), &points[0]);
+
+            _changed = false;
+        }
+        glBindVertexArray(vao);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
+};
+
+class Point
+{
+  private:
+    GLuint vao;
+    GLuint vbo;
+    GLuint posAttrib;
+    bool   _changed = false;
+
+    std::vector<Vec2> points;
+
+  public:
+    ~Point(){};
+
+    Point(int x, int y, float r, float size = 1)
+    {
+        for (float i = 0; i < 500; i++)
+            for (float j = 0; j < 500; j++) {
+                points.push_back({cos(i) + x, sin(j) + y});
+                // {cosf(i) * 100 + 100, sinf(i) * 100 + 500}
+            }
+
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(points[0]) * points.size(), points.data(), GL_STATIC_DRAW);
+
+        posAttrib = glGetAttribLocation(shaderProgram._programId, "aPos");
+        glEnableVertexAttribArray(posAttrib);
+        glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+
+        glPointSize(size);
+    }
+
+    void Draw()
+    {
+        GLenum err = GL_NO_ERROR;
+        if (_changed) {
+
+            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(points[0]) * points.size(), points.data());
+
+            _changed = false;
+        }
+        glBindVertexArray(vao);
+        glDrawArrays(GL_LINE_STRIP, 0, points.size());
     }
 };
