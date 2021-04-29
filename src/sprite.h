@@ -8,6 +8,13 @@
 #include "stb_image.h"
 #include "types.h"
 
+#define PI               3.14159265359f
+#define PI_OVER_180      0.0174532925199432957692369076849f
+#define HALFTURN_OVER_PI 57.2957795130823208767981548141f
+
+#define DEG_TO_RAD(x) (x * PI_OVER_180)
+#define RAD_TO_DEG(x) (x * 180_OVER_PI)
+
 extern ShaderProgram shaderProgram;
 
 class Color
@@ -236,7 +243,7 @@ class LineShape
     }
 };
 
-class Point
+class Circle
 {
   private:
     GLuint vao;
@@ -247,15 +254,24 @@ class Point
     std::vector<Vec2> points;
 
   public:
-    ~Point(){};
+    ~Circle(){};
 
-    Point(int x, int y, float r, float size = 1)
+    Circle(int x, int y, float r, float size = 2)
     {
-        for (float i = 0; i < 500; i++)
-            for (float j = 0; j < 500; j++) {
-                points.push_back({cos(i) + x, sin(j) + y});
-                // {cosf(i) * 100 + 100, sinf(i) * 100 + 500}
-            }
+        int count  = 0;
+        int amount = 2;
+
+        for (float i = -1; i < amount; i += 0.1f) {
+            Vec2 p;
+
+            p.x = r * cosf(i * (2 * PI) / amount) + x;
+            p.y = r * sinf(i * (2 * PI) / amount) + y;
+
+            points.push_back(p);
+            ++count;
+        }
+
+        printf("n of points: %d\n", count);
 
         glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
@@ -271,7 +287,8 @@ class Point
         glPointSize(size);
     }
 
-    void Draw()
+    void
+    Draw()
     {
         GLenum err = GL_NO_ERROR;
         if (_changed) {

@@ -26,12 +26,6 @@
 #include "shader.h"
 #include "sprite.h"
 
-#define PI_OVER_180      0.0174532925199432957692369076849f
-#define HALFTURN_OVER_PI 57.2957795130823208767981548141f
-
-#define DEG_TO_RAD(x) (x * PI_OVER_180)
-#define RAD_TO_DEG(x) (x * 180_OVER_PI)
-
 static bool      running       = 1;
 static GLboolean should_rotate = GL_TRUE;
 int              WIDTH         = 820;
@@ -120,7 +114,7 @@ int main(int argc, char *argv[])
     //
     // SCRATCH
     //
-    Point mypoints(200, 200, 2);
+    Circle cirle(50, 200, 50);
 
     //
     // Matrices Setup
@@ -143,8 +137,7 @@ int main(int argc, char *argv[])
     //
 
     while (running) {
-        static float rotationAngle = 0.01f;
-        float        startTicks    = SDL_GetTicks();
+        float startTicks = SDL_GetTicks();
 
         SDL_Event event = {};
         while (SDL_PollEvent(&event)) {
@@ -167,15 +160,6 @@ int main(int argc, char *argv[])
                 }
                 if (key == SDL_GetKeyFromName("D")) {
                     key_D = true;
-                }
-
-                if (key == SDL_GetKeyFromName("A")) {
-                    rotationAngle -= 2.f;
-                    printf("rotSpeed: %.2f\n", rotationAngle);
-                }
-                if (key == SDL_GetKeyFromName("E")) {
-                    rotationAngle += 2.f;
-                    printf("rotSpeed: %.2f\n", rotationAngle);
                 }
 
                 if (key == SDL_GetKeyFromName("Left")) {
@@ -242,7 +226,7 @@ int main(int argc, char *argv[])
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        mypoints.Draw();
+        cirle.Draw();
 
         SDL_GL_SwapWindow(window);
     }

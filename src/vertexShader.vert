@@ -15,9 +15,8 @@ uniform float i;
 
 void main()
 {
-   vec2 pos = vec2(0, 0);
 
-   gl_Position = projection * view * model * vec4(aPos.x + pos.x, aPos.y + pos.y, aPos.z, 1.0);
+   gl_Position = projection * view * model * vec4(aPos.x, aPos.y, aPos.z, 1.0);
    inColor = aColor;
    texCoord = aTexCoord;
 }
